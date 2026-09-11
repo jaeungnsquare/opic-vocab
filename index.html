@@ -1,0 +1,1102 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="오픽 단어장">
+<meta name="theme-color" content="#EEEFF1">
+<title>오픽 단어장</title>
+<style>
+:root{
+  --paper:#EEEFF1;--card:#FFF;--ink:#191F2B;--mute:#77808F;
+  --film:#D8342A;--line:#DFE1E5;--ok:#2C7358;
+  --sans:-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo","Noto Sans KR",system-ui,sans-serif;
+  --serif:ui-serif,Georgia,"Times New Roman",serif;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);font-family:var(--sans);
+  overscroll-behavior-y:none;
+}
+#app{
+  max-width:440px;margin:0 auto;
+  padding:0 16px calc(44px + env(safe-area-inset-bottom));
+  min-height:100dvh;
+}
+p{margin:0}
+button{font:inherit;color:inherit;touch-action:manipulation;min-height:44px;cursor:pointer}
+input,textarea{font-family:var(--sans);font-size:16px}
+
+/* 헤더 */
+.bar{display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:calc(14px + env(safe-area-inset-top)) 0 12px;position:sticky;top:0;background:var(--paper);z-index:5}
+.brand{display:flex;align-items:center;gap:7px;font-weight:700;font-size:14px;white-space:nowrap}
+.chip{width:12px;height:17px;background:var(--film);border-radius:2px;flex:none}
+.bar nav{display:flex;gap:2px}
+.bar nav button{border:0;background:none;font-size:13px;color:var(--mute);
+  padding:8px 11px;border-radius:8px;min-height:40px}
+.bar nav button.on{background:var(--ink);color:#fff}
+
+.pane{display:flex;flex-direction:column;gap:13px}
+.lead{font-size:13px;color:var(--mute);line-height:1.6}
+
+.today{background:var(--card);border-radius:14px;padding:24px 20px}
+.count{font-family:var(--serif);font-size:54px;line-height:1;letter-spacing:-.02em}
+.count span{font-family:var(--sans);font-size:14px;font-weight:500;margin-left:7px;color:var(--mute)}
+.today-sub{margin-top:9px;font-size:13px;color:var(--mute);line-height:1.6}
+
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chipbtn{border:1px solid var(--line);background:var(--card);font-size:13px;color:var(--mute);
+  padding:9px 13px;border-radius:20px;min-height:40px}
+.chipbtn.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.chipbtn b{font-weight:400;opacity:.6;margin-left:4px;font-size:11px}
+
+.stats{display:flex;gap:7px}
+.stats div{flex:1;background:var(--card);border-radius:11px;padding:13px 6px;text-align:center}
+.stats b{display:block;font-family:var(--serif);font-size:23px;font-weight:500}
+.stats span{font-size:11px;color:var(--mute)}
+
+.go{border:0;background:var(--ink);color:#fff;font-size:16px;font-weight:500;
+  padding:16px;border-radius:11px;width:100%}
+.go[disabled]{opacity:.4}
+.go.sm{padding:13px;font-size:15px;margin-top:14px}
+.ghost{border:0;background:none;font-size:13px;color:var(--mute);padding:10px 2px;
+  text-decoration:underline;text-underline-offset:3px}
+.last{font-size:12px;color:var(--mute);text-align:center}
+.msg{font-size:13px;text-align:center;color:var(--ok)}
+.msg.warn{color:var(--film)}
+
+.progress{display:flex;align-items:center;gap:10px}
+.track{flex:1;height:3px;background:var(--line);border-radius:2px;overflow:hidden}
+.fill{height:100%;background:var(--film);transition:width .25s ease}
+.progress span{font-size:11px;color:var(--mute);font-variant-numeric:tabular-nums}
+
+.card{background:var(--card);border-radius:16px;padding:26px 20px;border:2px solid transparent}
+.card.right{border-color:var(--ok)}
+.card.wrong{border-color:var(--film)}
+.pos{font-size:11px;color:var(--mute);margin-bottom:14px}
+.wordrow{display:flex;align-items:flex-start;gap:10px}
+.word{font-family:var(--serif);font-size:36px;line-height:1.14;letter-spacing:-.01em;
+  word-break:break-word;flex:1}
+.spk{border:0;background:none;font-size:19px;padding:2px 4px;min-height:36px;line-height:1;opacity:.5}
+.kmean{font-size:19px;font-weight:500;line-height:1.5}
+.kmean.red{color:var(--film)}
+.hint{font-family:var(--serif);font-size:20px;color:var(--mute);letter-spacing:.16em;
+  margin-top:10px;word-break:break-all}
+
+.sheet-wrap{position:relative;margin-top:18px;-webkit-user-select:none;user-select:none}
+.sheet{position:absolute;inset:-9px -10px;background:var(--film);border-radius:6px;
+  display:flex;align-items:center;justify-content:center;
+  transition:transform .32s cubic-bezier(.4,0,.2,1),opacity .32s}
+.sheet span{color:rgba(255,255,255,.93);font-size:12px}
+.sheet.off{transform:translateX(102%);opacity:0;pointer-events:none}
+
+.choices{display:flex;flex-direction:column;gap:7px;margin-top:18px}
+.choice{border:1px solid var(--line);background:#fff;font-size:14.5px;text-align:left;
+  padding:14px 15px;border-radius:9px;line-height:1.45;min-height:50px;width:100%}
+.choice.right{border-color:var(--ok);background:#EDF5F1;color:var(--ok)}
+.choice.wrong{border-color:var(--film);background:#FBEDEC;color:var(--film)}
+
+.spell{width:100%;border:0;border-bottom:2px solid var(--line);background:none;
+  font-family:var(--serif);font-size:24px;padding:9px 0;margin-top:16px;outline:none;
+  color:var(--ink);border-radius:0;-webkit-appearance:none}
+.spell:focus{border-color:var(--ink)}
+.answer{font-family:var(--serif);font-size:19px;color:var(--film);margin-top:12px}
+
+.ex{margin-top:20px;padding-top:16px;border-top:1px solid var(--line)}
+.ex-en{font-family:var(--serif);font-size:16.5px;line-height:1.55}
+.ex-ko{font-size:13px;color:var(--mute);margin-top:6px;line-height:1.6}
+.ex-en.small{font-size:14px;margin-top:8px}
+.ex-ko.small{font-size:12px}
+
+.judge{display:flex;gap:7px}
+.judge button{flex:1;border:0;font-size:14.5px;padding:15px 8px;border-radius:11px}
+.miss{background:#FBEDEC;color:var(--film)}
+.hit{background:#EDF5F1;color:var(--ok)}
+
+.search{width:100%;border:1px solid var(--line);background:var(--card);border-radius:10px;
+  padding:12px 14px;outline:none;-webkit-appearance:none}
+.list{list-style:none;padding:0;margin:0;background:var(--card);border-radius:13px;overflow:hidden}
+.list li+li{border-top:1px solid var(--line)}
+.list summary{display:flex;align-items:center;justify-content:space-between;gap:10px;
+  padding:14px 15px;list-style:none;min-height:52px;cursor:pointer}
+.list summary::-webkit-details-marker{display:none}
+.lw{font-family:var(--serif);font-size:17.5px;line-height:1.25}
+.rt{display:flex;align-items:center;gap:8px;flex:none}
+.tg{font-size:10.5px;color:var(--mute);background:#F2F3F5;padding:3px 7px;border-radius:10px}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--line)}
+.dot.b1{background:#F0C9C6}.dot.b2{background:#E8A09B}.dot.b3{background:#B9CFC4}
+.dot.b4{background:#79AE97}.dot.b5{background:var(--ok)}
+.list details[open]{padding-bottom:14px}
+.list details p{padding:0 15px}
+.lm{font-size:14px;font-weight:500}
+.lact{display:flex;gap:16px;padding:0 15px}
+.more{text-align:center;font-size:12px;color:var(--mute);padding:12px}
+
+.field{display:flex;flex-direction:column;gap:6px}
+.field label{font-size:12px;color:var(--mute)}
+.field input,.field textarea{border:1px solid var(--line);background:var(--card);
+  border-radius:10px;padding:12px 14px;outline:none;-webkit-appearance:none}
+.field textarea{min-height:120px;line-height:1.6;resize:vertical}
+.divider{border-top:1px solid var(--line);margin:6px 0}
+
+@media (max-width:360px){.word{font-size:31px}.count{font-size:46px}}
+@media (prefers-reduced-motion:reduce){.sheet,.fill{transition:none}}
+button:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--ink);outline-offset:2px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const WORDS = [
+// ── 일상 ──
+["run errands","표현","볼일을 보다, 잡일을 처리하다","I run errands on Saturday mornings.","나는 토요일 아침에 볼일을 본다.","일상"],
+["do the dishes","표현","설거지를 하다","We take turns doing the dishes.","우리는 번갈아 가며 설거지를 한다.","일상"],
+["do the laundry","표현","빨래를 하다","I do the laundry twice a week.","나는 일주일에 두 번 빨래를 한다.","일상"],
+["tidy up","표현","정리하다, 치우다","I tidy up my desk before work.","나는 일하기 전에 책상을 정리한다.","일상"],
+["household chores","명사","집안일","We split the household chores evenly.","우리는 집안일을 공평하게 나눈다.","일상"],
+["commute","동사","통근하다, 통학하다","I commute about forty minutes each way.","나는 편도로 40분 정도 통근한다.","일상"],
+["wind down","표현","긴장을 풀다, 하루를 마무리하다","I wind down by listening to music.","나는 음악을 들으며 하루를 마무리한다.","일상"],
+["sleep in","표현","늦잠을 자다","On weekends I like to sleep in.","주말에는 늦잠 자는 걸 좋아한다.","일상"],
+["grab a bite","표현","간단히 먹다","Let's grab a bite before the movie.","영화 보기 전에 간단히 먹자.","일상"],
+["stay up late","표현","늦게까지 안 자다","I stayed up late finishing the report.","보고서를 끝내느라 늦게까지 깨어 있었다.","일상"],
+["get ready","표현","준비하다","It takes me twenty minutes to get ready.","준비하는 데 20분쯤 걸린다.","일상"],
+["set an alarm","표현","알람을 맞추다","I set an alarm for six thirty.","나는 6시 30분에 알람을 맞춘다.","일상"],
+["hit the snooze button","표현","알람을 미루다","I hit the snooze button way too often.","나는 알람을 너무 자주 미룬다.","일상"],
+["take out the trash","표현","쓰레기를 내다 버리다","I take out the trash every other night.","나는 이틀에 한 번 쓰레기를 버린다.","일상"],
+["make the bed","표현","잠자리를 정리하다","I make the bed as soon as I wake up.","나는 일어나자마자 잠자리를 정리한다.","일상"],
+["water the plants","표현","화분에 물을 주다","I water the plants on Sundays.","나는 일요일에 화분에 물을 준다.","일상"],
+["grocery shopping","명사","장보기","I do grocery shopping once a week.","나는 일주일에 한 번 장을 본다.","일상"],
+["take a nap","표현","낮잠을 자다","I sometimes take a short nap after lunch.","점심 후에 가끔 짧게 낮잠을 잔다.","일상"],
+["freshen up","표현","씻고 단장하다","Give me a minute to freshen up.","잠깐 씻고 나올게요.","일상"],
+["head out","표현","나서다, 출발하다","I usually head out around eight.","나는 보통 8시쯤 나선다.","일상"],
+["get off work","표현","퇴근하다","I get off work at six.","나는 6시에 퇴근한다.","일상"],
+["on my way home","표현","집에 가는 길에","I picked it up on my way home.","집에 가는 길에 그걸 사 왔다.","일상"],
+["pick up","표현","가지러 가다, 태우러 가다","I have to pick up a package.","나는 택배를 찾으러 가야 한다.","일상"],
+["drop off","표현","데려다주다, 갖다주다","I drop my sister off at school.","나는 동생을 학교에 데려다준다.","일상"],
+["stick to a routine","표현","루틴을 지키다","I try to stick to a routine on weekdays.","나는 평일에는 루틴을 지키려고 한다.","일상"],
+["first thing in the morning","표현","아침에 제일 먼저","I check my phone first thing in the morning.","나는 아침에 제일 먼저 휴대폰을 본다.","일상"],
+["right before bed","표현","자기 바로 전에","I read a little right before bed.","나는 자기 바로 전에 조금 읽는다.","일상"],
+["a couple of times a week","표현","일주일에 두어 번","I cook a couple of times a week.","나는 일주일에 두어 번 요리한다.","일상"],
+["in the meantime","표현","그동안에, 그사이에","In the meantime, I cleaned the kitchen.","그사이에 나는 부엌을 치웠다.","일상"],
+["from time to time","표현","이따금, 가끔","I meet them from time to time.","나는 이따금 그들을 만난다.","일상"],
+["day off","명사","쉬는 날, 휴일","I have a day off on Wednesday.","나는 수요일에 쉬는 날이다.","일상"],
+["stay in","표현","집에 있다, 외출하지 않다","I would rather stay in tonight.","나는 오늘 밤은 집에 있고 싶다.","일상"],
+["go out","표현","외출하다, 놀러 나가다","We go out for dinner on Fridays.","우리는 금요일에 저녁을 먹으러 나간다.","일상"],
+["run out of","표현","다 떨어지다","I ran out of milk this morning.","오늘 아침에 우유가 다 떨어졌다.","일상"],
+["keep track of","표현","계속 파악하다, 챙기다","I keep track of my spending in an app.","나는 앱으로 지출을 계속 파악한다.","일상"],
+["set aside time","표현","시간을 따로 내다","I set aside time for studying every night.","나는 매일 밤 공부할 시간을 따로 낸다.","일상"],
+["squeeze in","표현","짬을 내어 하다","I squeezed in a workout before work.","나는 출근 전에 짬을 내어 운동했다.","일상"],
+["be used to","표현","~에 익숙하다","I am used to getting up early now.","나는 이제 일찍 일어나는 데 익숙하다.","일상"],
+["used to","표현","예전에는 ~하곤 했다","I used to walk to school every day.","나는 예전에 매일 걸어서 학교에 갔다.","일상"],
+["tend to","표현","~하는 편이다","I tend to eat late on weekends.","나는 주말에 늦게 먹는 편이다.","일상"],
+["hardly ever","표현","거의 ~하지 않다","I hardly ever watch live TV.","나는 TV를 실시간으로 거의 보지 않는다.","일상"],
+["every now and then","표현","가끔씩","Every now and then I cook something new.","가끔씩 나는 새로운 요리를 한다.","일상"],
+["nowadays","부사","요즘에는","Nowadays I work from home twice a week.","요즘에는 일주일에 두 번 재택근무를 한다.","일상"],
+["back then","표현","그 당시에는","Back then I did not have a car.","그 당시에 나는 차가 없었다.","일상"],
+["as soon as","표현","~하자마자","I called her as soon as I got home.","나는 집에 도착하자마자 그녀에게 전화했다.","일상"],
+["on a regular basis","표현","규칙적으로","I exercise on a regular basis.","나는 규칙적으로 운동한다.","일상"],
+["the whole day","표현","하루 종일","I stayed home the whole day.","나는 하루 종일 집에 있었다.","일상"],
+["by myself","표현","혼자서","I usually have lunch by myself.","나는 보통 혼자 점심을 먹는다.","일상"],
+["in a hurry","표현","급히, 서둘러","I left in a hurry this morning.","나는 오늘 아침 급하게 나왔다.","일상"],
+["put away","표현","치워 두다, 넣어 두다","I put away the dishes after dinner.","나는 저녁 후에 그릇을 치워 둔다.","일상"],
+
+// ── 집·동네 ──
+["within walking distance","표현","걸어갈 수 있는 거리에","The park is within walking distance.","공원은 걸어갈 수 있는 거리에 있다.","집·동네"],
+["right around the corner","표현","바로 근처에","There is a cafe right around the corner.","바로 근처에 카페가 있다.","집·동네"],
+["residential area","명사","주택가","I live in a quiet residential area.","나는 조용한 주택가에 산다.","집·동네"],
+["crowded","형용사","붐비는, 사람이 많은","The street gets crowded on weekends.","그 거리는 주말이면 붐빈다.","집·동네"],
+["spacious","형용사","넓은, 널찍한","The living room is surprisingly spacious.","거실이 생각보다 널찍하다.","집·동네"],
+["cozy","형용사","아늑한","It is a small but cozy apartment.","작지만 아늑한 아파트다.","집·동네"],
+["convenient","형용사","편리한","Living near the subway is convenient.","지하철 근처에 사는 건 편리하다.","집·동네"],
+["run-down","형용사","낡은, 허름한","The building looked a bit run-down.","그 건물은 조금 낡아 보였다.","집·동네"],
+["stop by","표현","잠깐 들르다","I stop by the bakery on my way home.","나는 집에 가는 길에 빵집에 들른다.","집·동네"],
+["hang out","표현","어울려 놀다, 시간을 보내다","We hang out at that cafe every week.","우리는 매주 그 카페에서 시간을 보낸다.","집·동네"],
+["atmosphere","명사","분위기","The place has a relaxed atmosphere.","그곳은 편안한 분위기다.","집·동네"],
+["move in","표현","이사 들어오다","I moved in about two years ago.","나는 약 2년 전에 이사 왔다.","집·동네"],
+["move out","표현","이사 나가다","They moved out last month.","그들은 지난달에 이사 나갔다.","집·동네"],
+["rent","명사","월세, 집세","The rent went up this year.","올해 월세가 올랐다.","집·동네"],
+["landlord","명사","집주인","My landlord fixed the heater quickly.","집주인이 난방기를 빨리 고쳐 줬다.","집·동네"],
+["studio apartment","명사","원룸","I live in a small studio apartment.","나는 작은 원룸에 산다.","집·동네"],
+["rooftop","명사","옥상","We had dinner on the rooftop.","우리는 옥상에서 저녁을 먹었다.","집·동네"],
+["balcony","명사","발코니, 베란다","I keep my plants on the balcony.","나는 발코니에 화분을 둔다.","집·동네"],
+["furniture","명사","가구","I bought most of my furniture online.","나는 가구를 대부분 온라인으로 샀다.","집·동네"],
+["appliance","명사","가전제품","The kitchen came with all the appliances.","부엌에 가전제품이 다 딸려 있었다.","집·동네"],
+["renovate","동사","수리하다, 개조하다","They renovated the whole first floor.","그들은 1층 전체를 개조했다.","집·동네"],
+["well-lit","형용사","조명이 밝은, 채광이 좋은","My room is bright and well-lit.","내 방은 밝고 채광이 좋다.","집·동네"],
+["noisy","형용사","시끄러운","The street outside can be noisy at night.","밤에는 바깥 거리가 시끄러울 수 있다.","집·동네"],
+["spotless","형용사","티 없이 깨끗한","The bathroom was absolutely spotless.","화장실이 아주 깨끗했다.","집·동네"],
+["cluttered","형용사","어수선한, 잡동사니가 많은","My desk gets cluttered by Friday.","내 책상은 금요일쯤 어수선해진다.","집·동네"],
+["neighborhood","명사","동네, 지역","I have lived in this neighborhood for years.","나는 이 동네에 몇 년째 살고 있다.","집·동네"],
+["neighbor","명사","이웃","My neighbor upstairs is very friendly.","윗집 이웃은 아주 친절하다.","집·동네"],
+["alley","명사","골목","There is a nice cafe down that alley.","저 골목에 괜찮은 카페가 있다.","집·동네"],
+["intersection","명사","교차로, 사거리","Turn left at the next intersection.","다음 사거리에서 좌회전하세요.","집·동네"],
+["sidewalk","명사","인도, 보도","The sidewalk is wide and clean.","인도가 넓고 깨끗하다.","집·동네"],
+["bus stop","명사","버스 정류장","The bus stop is two minutes away.","버스 정류장은 2분 거리에 있다.","집·동네"],
+["subway station","명사","지하철역","The subway station is right nearby.","지하철역이 바로 근처에 있다.","집·동네"],
+["convenience store","명사","편의점","There is a convenience store downstairs.","아래층에 편의점이 있다.","집·동네"],
+["pharmacy","명사","약국","The pharmacy closes at nine.","약국은 9시에 문을 닫는다.","집·동네"],
+["post office","명사","우체국","I stopped by the post office yesterday.","나는 어제 우체국에 들렀다.","집·동네"],
+["playground","명사","놀이터","Kids play at the playground after school.","아이들은 방과 후에 놀이터에서 논다.","집·동네"],
+["riverside","명사","강변","I like walking along the riverside.","나는 강변을 따라 걷는 걸 좋아한다.","집·동네"],
+["a block away","표현","한 블록 떨어진","The gym is just a block away.","헬스장은 한 블록밖에 안 떨어져 있다.","집·동네"],
+["packed","형용사","꽉 찬, 발 디딜 틈 없는","The cafe was packed on Saturday.","토요일에 그 카페는 꽉 차 있었다.","집·동네"],
+["look out over","표현","~가 내려다보이다","My window looks out over the park.","내 창문에서 공원이 내려다보인다.","집·동네"],
+["get some fresh air","표현","바람을 쐬다","I went outside to get some fresh air.","나는 바람을 쐬러 밖에 나갔다.","집·동네"],
+["parking spot","명사","주차 자리","It is hard to find a parking spot here.","여기는 주차 자리 찾기가 어렵다.","집·동네"],
+["laid out","표현","배치된, 구조가 짜인","The apartment is well laid out.","그 아파트는 구조가 잘 짜여 있다.","집·동네"],
+["settle in","표현","자리를 잡다, 적응하다","It took a month to settle in.","자리 잡는 데 한 달 걸렸다.","집·동네"],
+["a ten-minute drive","표현","차로 10분 거리","It is a ten-minute drive from here.","여기서 차로 10분 거리다.","집·동네"],
+// ── 취미 ──
+["get into","표현","~에 빠지다, 관심을 갖게 되다","I got into hiking two years ago.","나는 2년 전에 등산에 빠졌다.","취미"],
+["be into","표현","~를 좋아하다, 즐겨 하다","I am really into indie music these days.","나는 요즘 인디 음악을 정말 좋아한다.","취미"],
+["take up","표현","(취미를) 시작하다","I took up swimming last spring.","나는 지난봄에 수영을 시작했다.","취미"],
+["keep up with","표현","꾸준히 따라가다","It is hard to keep up with new releases.","새로 나오는 것들을 따라가기 힘들다.","취미"],
+["recharge","동사","재충전하다","Weekends are when I recharge.","주말은 내가 재충전하는 시간이다.","취미"],
+["addictive","형용사","중독성 있는","That game is dangerously addictive.","그 게임은 위험할 만큼 중독성 있다.","취미"],
+["thrilling","형용사","짜릿한, 흥미진진한","The last ten minutes were thrilling.","마지막 10분이 정말 짜릿했다.","취미"],
+["relaxing","형용사","마음이 편해지는","Cooking is surprisingly relaxing.","요리는 의외로 마음이 편해진다.","취미"],
+["hands down","표현","단연코, 두말할 것 없이","That is hands down my favorite place.","거기는 단연코 내가 제일 좋아하는 곳이다.","취미"],
+["once in a while","표현","가끔씩","I go camping once in a while.","나는 가끔씩 캠핑을 간다.","취미"],
+["pastime","명사","취미, 소일거리","Reading is my favorite pastime.","독서는 내가 가장 좋아하는 취미다.","취미"],
+["be good at","표현","~을 잘하다","I am not very good at drawing.","나는 그림을 그리 잘 그리지 못한다.","취미"],
+["get better at","표현","~이 늘다, 나아지다","I am slowly getting better at it.","나는 조금씩 실력이 늘고 있다.","취미"],
+["beginner","명사","초보자","I am still a complete beginner.","나는 아직 완전 초보다.","취미"],
+["on and off","표현","간간이, 했다 말았다","I have played guitar on and off for years.","나는 몇 년간 기타를 간간이 쳐 왔다.","취미"],
+["stick with","표현","꾸준히 계속하다","I want to stick with it this time.","이번에는 꾸준히 해 보고 싶다.","취미"],
+["give up","표현","포기하다, 그만두다","I gave up after a few weeks.","나는 몇 주 만에 포기했다.","취미"],
+["look forward to","표현","~를 기대하다","I look forward to Friday evenings.","나는 금요일 저녁을 기대한다.","취미"],
+["kill time","표현","시간을 때우다","I play mobile games to kill time.","나는 시간을 때우려고 모바일 게임을 한다.","취미"],
+["in my free time","표현","여가 시간에","In my free time I go to the park.","여가 시간에 나는 공원에 간다.","취미"],
+["join a club","표현","동호회에 가입하다","I joined a running club last year.","나는 작년에 러닝 동호회에 가입했다.","취미"],
+["sign up for","표현","~에 등록하다, 신청하다","I signed up for a cooking class.","나는 요리 수업에 등록했다.","취미"],
+["take a class","표현","수업을 듣다","I take a yoga class on Tuesdays.","나는 화요일에 요가 수업을 듣는다.","취미"],
+["instructor","명사","강사","The instructor was really patient.","강사가 정말 인내심이 많았다.","취미"],
+["gear","명사","장비, 용품","I bought some basic camping gear.","나는 기본적인 캠핑 장비를 샀다.","취미"],
+["bring along","표현","챙겨 가다, 데리고 가다","I brought along a folding chair.","나는 접이식 의자를 챙겨 갔다.","취미"],
+["hiking trail","명사","등산로","The trail was steeper than I expected.","등산로가 생각보다 가팔랐다.","취미"],
+["go for a walk","표현","산책하러 가다","I go for a walk after dinner.","나는 저녁 후에 산책하러 간다.","취미"],
+["ride a bike","표현","자전거를 타다","I ride a bike along the river.","나는 강을 따라 자전거를 탄다.","취미"],
+["board game","명사","보드게임","We played board games all night.","우리는 밤새 보드게임을 했다.","취미"],
+["gardening","명사","정원 가꾸기, 원예","Gardening keeps me busy on weekends.","원예는 주말에 나를 바쁘게 한다.","취미"],
+["photography","명사","사진 촬영","I got into photography during college.","나는 대학 때 사진에 빠졌다.","취미"],
+["take photos","표현","사진을 찍다","I take photos wherever I travel.","나는 여행 가는 곳마다 사진을 찍는다.","취미"],
+["journaling","명사","일기 쓰기","Journaling helps me clear my head.","일기 쓰기는 머리를 비우는 데 도움이 된다.","취미"],
+["collect","동사","수집하다, 모으다","I collect vinyl records.","나는 LP를 수집한다.","취미"],
+["get hooked on","표현","~에 푹 빠지다","I got hooked on that series instantly.","나는 그 시리즈에 바로 푹 빠졌다.","취미"],
+["lose track of time","표현","시간 가는 줄 모르다","I lose track of time when I read.","나는 책을 읽으면 시간 가는 줄 모른다.","취미"],
+["for fun","표현","재미로","I do it purely for fun.","나는 순전히 재미로 그걸 한다.","취미"],
+["no pressure","표현","부담 없이","I keep it casual, no pressure.","나는 부담 없이 편하게 한다.","취미"],
+["worth trying","표현","해 볼 만한","It is definitely worth trying once.","한 번쯤 해 볼 만하다.","취미"],
+["a change of pace","표현","기분 전환","I needed a change of pace.","나는 기분 전환이 필요했다.","취미"],
+["out of curiosity","표현","호기심에","I started out of curiosity.","나는 호기심에 시작했다.","취미"],
+["at my own pace","표현","내 속도에 맞춰","I learn at my own pace.","나는 내 속도에 맞춰 배운다.","취미"],
+["from scratch","표현","처음부터, 맨땅에서","I built it from scratch.","나는 그것을 처음부터 만들었다.","취미"],
+["pick it back up","표현","다시 시작하다","I want to pick it back up soon.","나는 곧 다시 시작하고 싶다.","취미"],
+
+// ── 미디어 ──
+["binge-watch","동사","몰아서 보다","I binge-watched the whole season.","나는 한 시즌을 통째로 몰아 봤다.","미디어"],
+["movie theater","명사","영화관","I rarely go to the movie theater now.","나는 요즘 영화관에 잘 안 간다.","미디어"],
+["plot","명사","줄거리, 구성","The plot was a little predictable.","줄거리가 조금 뻔했다.","미디어"],
+["character","명사","등장인물","The main character was well written.","주인공이 잘 만들어졌다.","미디어"],
+["director","명사","감독","I like everything that director makes.","나는 그 감독 작품을 다 좋아한다.","미디어"],
+["sequel","명사","속편","The sequel was better than the original.","속편이 원작보다 나았다.","미디어"],
+["trailer","명사","예고편","The trailer gave away too much.","예고편이 너무 많이 보여 줬다.","미디어"],
+["subtitles","명사","자막","I always watch with subtitles on.","나는 항상 자막을 켜고 본다.","미디어"],
+["dubbed","형용사","더빙된","I do not like dubbed movies.","나는 더빙된 영화를 좋아하지 않는다.","미디어"],
+["box office","명사","흥행 수익, 매표소","The film did well at the box office.","그 영화는 흥행에 성공했다.","미디어"],
+["blockbuster","명사","대작, 흥행작","It was the blockbuster of the summer.","그것은 그해 여름의 대작이었다.","미디어"],
+["thriller","명사","스릴러","I prefer thrillers to romance.","나는 로맨스보다 스릴러를 선호한다.","미디어"],
+["documentary","명사","다큐멘터리","I watched a documentary about the ocean.","나는 바다에 관한 다큐멘터리를 봤다.","미디어"],
+["spoiler","명사","스포일러","Do not tell me, no spoilers.","말하지 마, 스포일러 금지야.","미디어"],
+["review","명사","후기, 평가","The reviews were mostly positive.","후기가 대체로 긍정적이었다.","미디어"],
+["streaming service","명사","스트리밍 서비스","I subscribe to two streaming services.","나는 스트리밍 서비스 두 개를 구독한다.","미디어"],
+["subscription","명사","구독","I cancelled my subscription last month.","나는 지난달에 구독을 해지했다.","미디어"],
+["episode","명사","(드라마의) 화, 편","The last episode was the best one.","마지막 화가 제일 좋았다.","미디어"],
+["soundtrack","명사","사운드트랙, 배경음악","The soundtrack stayed in my head.","사운드트랙이 머릿속에 맴돌았다.","미디어"],
+["catchy","형용사","귀에 쏙 들어오는","The chorus is really catchy.","후렴이 정말 귀에 쏙 들어온다.","미디어"],
+["lyrics","명사","가사","I looked up the lyrics afterward.","나는 나중에 가사를 찾아봤다.","미디어"],
+["playlist","명사","재생 목록","I made a playlist for commuting.","나는 통근용 재생 목록을 만들었다.","미디어"],
+["concert","명사","콘서트, 공연","I went to my first concert last year.","나는 작년에 첫 콘서트에 갔다.","미디어"],
+["live performance","명사","라이브 공연","The live performance was even better.","라이브 공연이 훨씬 좋았다.","미디어"],
+["genre","명사","장르","I listen to all kinds of genres.","나는 온갖 장르를 듣는다.","미디어"],
+["novel","명사","소설","I am reading a novel at the moment.","나는 지금 소설을 읽고 있다.","미디어"],
+["bestseller","명사","베스트셀러","It was a bestseller for months.","그것은 몇 달간 베스트셀러였다.","미디어"],
+["page-turner","명사","술술 읽히는 책","That book was a real page-turner.","그 책은 정말 술술 읽혔다.","미디어"],
+["author","명사","작가, 저자","I have read everything by that author.","나는 그 작가 책을 다 읽었다.","미디어"],
+["audiobook","명사","오디오북","I listen to audiobooks while driving.","나는 운전하면서 오디오북을 듣는다.","미디어"],
+["recommend","동사","추천하다","I would definitely recommend it.","나는 그걸 꼭 추천하고 싶다.","미디어"],
+["turn out","표현","결국 ~로 밝혀지다","It turned out better than I expected.","그것은 기대보다 좋게 나왔다.","미디어"],
+["based on","표현","~을 바탕으로 한","The film is based on a true story.","그 영화는 실화를 바탕으로 했다.","미디어"],
+["come out","표현","(작품이) 나오다, 개봉하다","The new album came out last week.","새 앨범이 지난주에 나왔다.","미디어"],
+["stream","동사","스트리밍으로 보다","I usually stream movies at home.","나는 보통 집에서 영화를 스트리밍으로 본다.","미디어"],
+["scene","명사","장면","There is one scene I still remember.","아직도 기억나는 장면이 하나 있다.","미디어"],
+["fast-paced","형용사","전개가 빠른","The show is fast-paced and fun.","그 드라마는 전개가 빠르고 재미있다.","미디어"],
+["slow-paced","형용사","전개가 느린","It was a bit slow-paced for me.","나에게는 전개가 조금 느렸다.","미디어"],
+["relate to","표현","공감하다","I could really relate to the main character.","나는 주인공에게 정말 공감이 갔다.","미디어"],
+["overrated","형용사","과대평가된","Honestly, I thought it was overrated.","솔직히 과대평가됐다고 생각했다.","미디어"],
+// ── 운동 ──
+["work out","표현","운동하다","I work out three times a week.","나는 일주일에 세 번 운동한다.","운동"],
+["gym membership","명사","헬스장 회원권","I signed up for a gym membership.","나는 헬스장 회원권을 끊었다.","운동"],
+["treadmill","명사","러닝머신","I run on the treadmill when it rains.","비가 오면 러닝머신에서 뛴다.","운동"],
+["stretch","동사","스트레칭하다","I stretch for ten minutes first.","나는 먼저 10분간 스트레칭한다.","운동"],
+["warm up","표현","몸을 풀다","Always warm up before running.","달리기 전에는 항상 몸을 풀어라.","운동"],
+["cool down","표현","마무리 운동을 하다","I cool down with a slow walk.","나는 천천히 걸으며 마무리한다.","운동"],
+["sore","형용사","(근육이) 뻐근한","My legs were sore the next day.","다음 날 다리가 뻐근했다.","운동"],
+["out of breath","표현","숨이 찬","I was out of breath after one lap.","한 바퀴 만에 숨이 찼다.","운동"],
+["in shape","표현","몸 상태가 좋은","I want to get back in shape.","나는 다시 몸 상태를 만들고 싶다.","운동"],
+["build muscle","표현","근육을 키우다","It takes time to build muscle.","근육을 키우려면 시간이 걸린다.","운동"],
+["go for a jog","표현","조깅하러 가다","I go for a jog before breakfast.","나는 아침 먹기 전에 조깅하러 간다.","운동"],
+["pace","명사","속도, 페이스","I kept a steady pace the whole way.","나는 내내 일정한 페이스를 유지했다.","운동"],
+["stamina","명사","체력, 지구력","My stamina improved a lot.","내 체력이 많이 좋아졌다.","운동"],
+["push myself","표현","스스로를 밀어붙이다","I try not to push myself too hard.","나는 너무 무리하지 않으려고 한다.","운동"],
+["break a sweat","표현","땀을 흘리다","I barely broke a sweat today.","오늘은 땀도 거의 안 났다.","운동"],
+["injury","명사","부상","I had a minor injury last winter.","나는 지난겨울에 가벼운 부상을 입었다.","운동"],
+["recover","동사","회복하다","It took two weeks to recover.","회복하는 데 2주 걸렸다.","운동"],
+["rest day","명사","쉬는 날, 휴식일","Sunday is always my rest day.","일요일은 항상 내 휴식일이다.","운동"],
+["personal trainer","명사","개인 트레이너","A personal trainer showed me the form.","트레이너가 자세를 알려 줬다.","운동"],
+["swimming pool","명사","수영장","The pool opens at six in the morning.","수영장은 아침 6시에 연다.","운동"],
+["lap","명사","(수영장·트랙) 한 바퀴","I swim twenty laps each time.","나는 매번 20바퀴를 수영한다.","운동"],
+["indoors","부사","실내에서","I exercise indoors during winter.","나는 겨울에는 실내에서 운동한다.","운동"],
+["outdoors","부사","야외에서","I prefer running outdoors.","나는 야외에서 달리는 걸 선호한다.","운동"],
+["weather permitting","표현","날씨가 괜찮으면","Weather permitting, I run outside.","날씨가 괜찮으면 밖에서 달린다.","운동"],
+["energetic","형용사","활기찬, 기운이 넘치는","I feel energetic after a workout.","나는 운동 후에 기운이 넘친다.","운동"],
+["refreshed","형용사","개운한","A cold shower leaves me refreshed.","찬물 샤워를 하면 개운하다.","운동"],
+["stay healthy","표현","건강을 유지하다","I walk a lot to stay healthy.","나는 건강을 유지하려고 많이 걷는다.","운동"],
+["get enough sleep","표현","충분히 자다","I try to get enough sleep on weekdays.","나는 평일에 충분히 자려고 한다.","운동"],
+["checkup","명사","건강검진","I get a checkup once a year.","나는 1년에 한 번 검진을 받는다.","운동"],
+["catch a cold","표현","감기에 걸리다","I caught a cold last week.","나는 지난주에 감기에 걸렸다.","운동"],
+["under the weather","표현","몸이 좀 안 좋은","I am feeling a bit under the weather.","나는 몸이 좀 안 좋다.","운동"],
+["posture","명사","자세","Sitting all day ruins your posture.","하루 종일 앉아 있으면 자세가 나빠진다.","운동"],
+["stiff","형용사","뻣뻣한, 결리는","My shoulders get stiff at work.","일할 때 어깨가 결린다.","운동"],
+["take it easy","표현","무리하지 않다, 쉬엄쉬엄하다","The doctor told me to take it easy.","의사가 무리하지 말라고 했다.","운동"],
+["work off","표현","(운동으로) 풀다, 소모하다","I work off stress at the gym.","나는 헬스장에서 스트레스를 푼다.","운동"],
+["join a gym","표현","헬스장에 등록하다","I joined a gym near my office.","나는 사무실 근처 헬스장에 등록했다.","운동"],
+["stick to it","표현","꾸준히 하다","The hard part is sticking to it.","어려운 건 꾸준히 하는 것이다.","운동"],
+["at least","표현","적어도, 최소한","I walk at least thirty minutes a day.","나는 하루에 최소 30분은 걷는다.","운동"],
+["burn energy","표현","에너지를 쓰다","Swimming burns a lot of energy.","수영은 에너지를 많이 쓴다.","운동"],
+["feel a difference","표현","차이를 느끼다","I started to feel a difference.","나는 차이를 느끼기 시작했다.","운동"],
+
+// ── 음식 ──
+["eat out","표현","외식하다","We eat out about once a week.","우리는 일주일에 한 번쯤 외식한다.","음식"],
+["order in","표현","배달시켜 먹다","We ordered in last night.","우리는 어젯밤 배달시켜 먹었다.","음식"],
+["takeout","명사","포장 음식","I picked up takeout on the way.","나는 오는 길에 포장 음식을 샀다.","음식"],
+["delivery","명사","배달","Delivery takes about thirty minutes.","배달은 30분쯤 걸린다.","음식"],
+["menu","명사","메뉴","The menu had too many options.","메뉴에 선택지가 너무 많았다.","음식"],
+["spicy","형용사","매운","I love spicy food.","나는 매운 음식을 아주 좋아한다.","음식"],
+["salty","형용사","짠","The soup was a little too salty.","국이 조금 짰다.","음식"],
+["bland","형용사","싱거운, 밍밍한","The pasta tasted bland.","파스타가 밍밍했다.","음식"],
+["greasy","형용사","기름진","I avoid greasy food at night.","나는 밤에 기름진 음식을 피한다.","음식"],
+["crispy","형용사","바삭한","The chicken was perfectly crispy.","치킨이 완벽하게 바삭했다.","음식"],
+["tender","형용사","부드러운, 연한","The beef was really tender.","소고기가 정말 연했다.","음식"],
+["side dish","명사","반찬, 곁들임 요리","They serve five side dishes.","그 집은 반찬을 다섯 가지 준다.","음식"],
+["main course","명사","메인 요리","The main course arrived quickly.","메인 요리가 빨리 나왔다.","음식"],
+["dessert","명사","후식","We shared a dessert at the end.","우리는 마지막에 후식을 나눠 먹었다.","음식"],
+["appetizer","명사","전채, 애피타이저","We ordered an appetizer to share.","우리는 나눠 먹을 전채를 시켰다.","음식"],
+["refill","명사","리필","They give free refills on coffee.","그곳은 커피 리필이 무료다.","음식"],
+["split the bill","표현","돈을 나눠 내다","We usually split the bill.","우리는 보통 돈을 나눠 낸다.","음식"],
+["reservation","명사","예약","I made a reservation for seven.","나는 7시로 예약했다.","음식"],
+["walk-in","명사","예약 없이 온 손님","They take walk-ins on weekdays.","평일에는 예약 없이도 받는다.","음식"],
+["waiting list","명사","대기 명단","We put our name on the waiting list.","우리는 대기 명단에 이름을 올렸다.","음식"],
+["barista","명사","바리스타","The barista remembered my order.","바리스타가 내 주문을 기억했다.","음식"],
+["iced americano","명사","아이스 아메리카노","I order an iced americano every morning.","나는 매일 아침 아이스 아메리카노를 시킨다.","음식"],
+["sweet tooth","표현","단것을 좋아하는 입맛","I have a serious sweet tooth.","나는 단것을 아주 좋아한다.","음식"],
+["snack","명사","간식","I keep snacks in my desk drawer.","나는 책상 서랍에 간식을 둔다.","음식"],
+["leftovers","명사","남은 음식","I had leftovers for lunch.","나는 점심으로 남은 음식을 먹었다.","음식"],
+["recipe","명사","조리법, 레시피","I followed a recipe from a video.","나는 영상 레시피를 따라 했다.","음식"],
+["ingredient","명사","재료","I bought all the ingredients yesterday.","나는 어제 재료를 다 샀다.","음식"],
+["chop","동사","썰다, 다지다","I chopped the onions first.","나는 먼저 양파를 썰었다.","음식"],
+["boil","동사","끓이다","Boil the water for three minutes.","물을 3분간 끓이세요.","음식"],
+["grill","동사","굽다","We grilled meat on the balcony.","우리는 발코니에서 고기를 구웠다.","음식"],
+["flavor","명사","맛, 풍미","The sauce had a deep flavor.","소스에 깊은 맛이 있었다.","음식"],
+["portion","명사","1인분, 양","The portions are pretty generous.","양이 꽤 넉넉하다.","음식"],
+["hole-in-the-wall","명사","작고 허름한 맛집","It is a hole-in-the-wall but great.","작고 허름하지만 정말 맛있다.","음식"],
+["worth the wait","표현","기다릴 만한","The line was long but worth the wait.","줄이 길었지만 기다릴 만했다.","음식"],
+["go-to place","명사","단골집","That is my go-to place for lunch.","거기가 내 점심 단골집이다.","음식"],
+["craving","명사","먹고 싶은 마음","I had a craving for noodles.","나는 국수가 몹시 먹고 싶었다.","음식"],
+["grab coffee","표현","커피 한잔하다","Let us grab coffee after work.","퇴근하고 커피 한잔하자.","음식"],
+["treat myself","표현","나에게 한턱내다","I treat myself to dessert on Fridays.","나는 금요일에 후식으로 나를 대접한다.","음식"],
+["home-cooked","형용사","집에서 만든","Nothing beats a home-cooked meal.","집밥만 한 게 없다.","음식"],
+["picky eater","명사","입맛이 까다로운 사람","My brother is a picky eater.","내 동생은 입맛이 까다롭다.","음식"],
+// ── 여행 ──
+["book in advance","표현","미리 예약하다","You should book in advance during holidays.","연휴에는 미리 예약하는 게 좋다.","여행"],
+["pack light","표현","짐을 가볍게 싸다","I always try to pack light.","나는 항상 짐을 가볍게 싸려 한다.","여행"],
+["get around","표현","돌아다니다, 이동하다","It is easy to get around by subway.","지하철로 돌아다니기 편하다.","여행"],
+["check in","표현","체크인하다","We checked in around three.","우리는 3시쯤 체크인했다.","여행"],
+["check out","표현","체크아웃하다","Check out is at eleven.","체크아웃은 11시다.","여행"],
+["sightseeing","명사","관광","We spent the day sightseeing.","우리는 하루 종일 관광했다.","여행"],
+["scenery","명사","경치, 풍경","The scenery along the coast was amazing.","해안 경치가 멋졌다.","여행"],
+["jet lag","명사","시차 적응 문제","It took three days to get over the jet lag.","시차 적응에 사흘 걸렸다.","여행"],
+["must-see","명사","꼭 봐야 할 곳","That museum is a must-see.","그 박물관은 꼭 봐야 할 곳이다.","여행"],
+["head to","표현","~로 향하다","After lunch we headed to the beach.","점심 후 우리는 해변으로 향했다.","여행"],
+["end up","표현","결국 ~하게 되다","We ended up staying an extra night.","우리는 결국 하루 더 묵게 됐다.","여행"],
+["worth it","표현","그럴 가치가 있는","The hike was long but worth it.","등산은 길었지만 그럴 가치가 있었다.","여행"],
+["boarding pass","명사","탑승권","I saved my boarding pass on my phone.","나는 탑승권을 휴대폰에 저장했다.","여행"],
+["layover","명사","경유, 환승 대기","We had a six-hour layover.","우리는 6시간 경유 대기가 있었다.","여행"],
+["round trip","명사","왕복","I booked a round trip ticket.","나는 왕복 표를 예약했다.","여행"],
+["one-way","형용사","편도의","A one-way ticket was cheaper.","편도 표가 더 쌌다.","여행"],
+["carry-on","명사","기내용 가방","I only brought a carry-on.","나는 기내용 가방만 가져갔다.","여행"],
+["luggage","명사","짐, 수하물","My luggage arrived a day late.","내 짐이 하루 늦게 도착했다.","여행"],
+["customs","명사","세관","Customs took about twenty minutes.","세관에서 20분쯤 걸렸다.","여행"],
+["itinerary","명사","여행 일정","I kept the itinerary flexible.","나는 일정을 여유 있게 짰다.","여행"],
+["guided tour","명사","가이드 투어","We joined a short guided tour.","우리는 짧은 가이드 투어에 참여했다.","여행"],
+["landmark","명사","명소, 랜드마크","We visited every major landmark.","우리는 주요 명소를 전부 갔다.","여행"],
+["souvenir","명사","기념품","I bought a small souvenir for my mom.","나는 엄마에게 줄 작은 기념품을 샀다.","여행"],
+["local cuisine","명사","현지 음식","Trying the local cuisine was the highlight.","현지 음식을 먹어 본 게 제일 좋았다.","여행"],
+["hostel","명사","호스텔","We stayed at a cheap hostel.","우리는 저렴한 호스텔에 묵었다.","여행"],
+["front desk","명사","프런트, 안내 데스크","I asked the front desk for towels.","나는 프런트에 수건을 요청했다.","여행"],
+["tourist attraction","명사","관광 명소","The tourist attractions were packed.","관광 명소마다 사람이 많았다.","여행"],
+["off the beaten path","표현","사람이 잘 안 가는 곳","We found a place off the beaten path.","우리는 남들이 잘 안 가는 곳을 찾았다.","여행"],
+["peak season","명사","성수기","Prices double during peak season.","성수기에는 가격이 두 배가 된다.","여행"],
+["off-season","명사","비수기","I prefer traveling in the off-season.","나는 비수기에 여행하는 걸 선호한다.","여행"],
+["road trip","명사","자동차 여행","We took a road trip along the coast.","우리는 해안을 따라 자동차 여행을 했다.","여행"],
+["rest area","명사","휴게소","We stopped at a rest area.","우리는 휴게소에 들렀다.","여행"],
+["get lost","표현","길을 잃다","We got lost twice on the first day.","우리는 첫날 두 번 길을 잃었다.","여행"],
+["ask for directions","표현","길을 묻다","I had to ask for directions.","나는 길을 물어봐야 했다.","여행"],
+["exchange money","표현","환전하다","I exchanged money at the airport.","나는 공항에서 환전했다.","여행"],
+["travel insurance","명사","여행자 보험","I always get travel insurance.","나는 항상 여행자 보험을 든다.","여행"],
+["day trip","명사","당일치기 여행","We took a day trip to the island.","우리는 섬으로 당일치기 여행을 갔다.","여행"],
+["breathtaking","형용사","숨 막히게 아름다운","The view was breathtaking.","경치가 숨 막히게 아름다웠다.","여행"],
+["crowd","명사","인파, 사람들","We left early to avoid the crowd.","우리는 인파를 피하려고 일찍 나왔다.","여행"],
+["make the most of","표현","최대한 활용하다","We made the most of two days.","우리는 이틀을 최대한 활용했다.","여행"],
+["run into","표현","우연히 마주치다","I ran into an old friend there.","나는 거기서 옛 친구를 우연히 만났다.","여행"],
+["spur of the moment","표현","즉흥적으로","It was a spur of the moment trip.","즉흥적으로 떠난 여행이었다.","여행"],
+["recharge my batteries","표현","재충전하다","I traveled to recharge my batteries.","나는 재충전하려고 여행을 갔다.","여행"],
+["highlight of the trip","표현","여행의 백미","The night market was the highlight.","야시장이 여행의 백미였다.","여행"],
+["look around","표현","둘러보다","We just looked around for an hour.","우리는 한 시간 정도 그냥 둘러봤다.","여행"],
+
+// ── 직장·학교 ──
+["in charge of","표현","~을 맡고 있는","I am in charge of the testing process.","나는 테스트 과정을 맡고 있다.","직장"],
+["take care of","표현","처리하다, 맡아서 하다","I will take care of the paperwork.","서류 작업은 제가 처리할게요.","직장"],
+["catch up on","표현","밀린 것을 따라잡다","I need to catch up on my emails.","나는 밀린 이메일을 처리해야 한다.","직장"],
+["come up with","표현","생각해 내다","She came up with a great idea.","그녀가 좋은 아이디어를 냈다.","직장"],
+["figure out","표현","알아내다, 파악하다","It took a while to figure out the problem.","문제를 파악하는 데 시간이 걸렸다.","직장"],
+["put off","표현","미루다, 연기하다","Do not put off the decision.","결정을 미루지 마세요.","직장"],
+["bring up","표현","(주제를) 꺼내다","I brought it up at the meeting.","나는 회의에서 그 얘기를 꺼냈다.","직장"],
+["deadline","명사","마감 기한","We barely met the deadline.","우리는 간신히 마감을 맞췄다.","직장"],
+["overtime","명사","초과 근무, 야근","I worked overtime three days.","나는 사흘 야근했다.","직장"],
+["coworker","명사","직장 동료","My coworkers are easy to work with.","내 동료들은 함께 일하기 편하다.","직장"],
+["get along with","표현","~와 잘 지내다","I get along with everyone on my team.","나는 팀원들과 잘 지낸다.","직장"],
+["hectic","형용사","정신없이 바쁜","Mondays are always hectic.","월요일은 늘 정신없이 바쁘다.","직장"],
+["agenda","명사","안건, 회의 순서","The agenda was sent out yesterday.","안건은 어제 공유됐다.","직장"],
+["presentation","명사","발표","I gave a short presentation today.","나는 오늘 짧은 발표를 했다.","직장"],
+["follow up","표현","후속 조치를 하다","I will follow up by email.","제가 이메일로 후속 연락드릴게요.","직장"],
+["touch base","표현","간단히 연락하다","Let us touch base on Friday.","금요일에 간단히 얘기하시죠.","직장"],
+["delegate","동사","위임하다, 맡기다","I learned to delegate more.","나는 더 위임하는 법을 배웠다.","직장"],
+["workload","명사","업무량","My workload doubled this quarter.","이번 분기에 업무량이 두 배가 됐다.","직장"],
+["business trip","명사","출장","I went on a business trip last week.","나는 지난주에 출장을 다녀왔다.","직장"],
+["promotion","명사","승진","She got a promotion in March.","그녀는 3월에 승진했다.","직장"],
+["apply for","표현","~에 지원하다","I applied for three positions.","나는 세 자리에 지원했다.","직장"],
+["resume","명사","이력서","I updated my resume last night.","나는 어젯밤 이력서를 수정했다.","직장"],
+["interview","명사","면접","The interview lasted an hour.","면접은 한 시간 걸렸다.","직장"],
+["internship","명사","인턴십","I did an internship over the summer.","나는 여름에 인턴을 했다.","직장"],
+["remote work","명사","원격 근무","Remote work suits me well.","원격 근무가 나에게 잘 맞는다.","직장"],
+["work from home","표현","재택근무하다","I work from home on Wednesdays.","나는 수요일에 재택근무한다.","직장"],
+["flexible hours","명사","유연 근무제","My company offers flexible hours.","우리 회사는 유연 근무제를 운영한다.","직장"],
+["supervisor","명사","상사, 관리자","My supervisor gave helpful feedback.","상사가 도움이 되는 피드백을 줬다.","직장"],
+["teamwork","명사","팀워크, 협업","The project needed real teamwork.","그 프로젝트는 진짜 협업이 필요했다.","직장"],
+["brainstorm","동사","아이디어를 모으다","We brainstormed for an hour.","우리는 한 시간 동안 아이디어를 모았다.","직장"],
+["feedback","명사","피드백, 의견","I asked for feedback on my draft.","나는 초안에 대한 피드백을 요청했다.","직장"],
+["training session","명사","교육, 연수","We had a training session on Monday.","우리는 월요일에 교육을 받았다.","직장"],
+["major","명사","전공","My major was mechanical engineering.","내 전공은 기계공학이었다.","직장"],
+["assignment","명사","과제","The assignment was due Friday.","과제는 금요일까지였다.","직장"],
+["semester","명사","학기","Last semester was the hardest.","지난 학기가 가장 힘들었다.","직장"],
+["lecture","명사","강의","The lecture ran twenty minutes over.","강의가 20분 늦게 끝났다.","직장"],
+["group project","명사","조별 과제","Group projects were always stressful.","조별 과제는 늘 스트레스였다.","직장"],
+["graduate","동사","졸업하다","I graduated four years ago.","나는 4년 전에 졸업했다.","직장"],
+["scholarship","명사","장학금","I received a small scholarship.","나는 소액 장학금을 받았다.","직장"],
+["on leave","표현","휴가 중인, 부재중인","She is on leave until next month.","그녀는 다음 달까지 자리를 비운다.","직장"],
+["stay late","표현","늦게까지 남다","I stayed late to finish it.","나는 그걸 끝내려고 늦게까지 남았다.","직장"],
+["take on","표현","(일을) 맡다","I took on a new project.","나는 새 프로젝트를 맡았다.","직장"],
+["wrap up","표현","마무리하다","Let us wrap up the meeting.","회의를 마무리합시다.","직장"],
+["run by","표현","~에게 의견을 구하다","Let me run this by my manager.","이건 매니저에게 한번 확인해 볼게요.","직장"],
+["keep up the pace","표현","속도를 유지하다","It is hard to keep up the pace.","그 속도를 유지하기가 힘들다.","직장"],
+["hands-on","형용사","직접 해 보는, 실무적인","I learned through hands-on experience.","나는 직접 해 보며 배웠다.","직장"],
+["step in","표현","대신 나서다, 개입하다","I stepped in when he was out.","그가 없을 때 내가 대신 나섰다.","직장"],
+["sign off on","표현","승인하다","My boss signed off on the plan.","상사가 그 계획을 승인했다.","직장"],
+["under pressure","표현","압박을 받는","I work fine under pressure.","나는 압박 속에서도 잘 일한다.","직장"],
+// ── 성격·감정 ──
+["outgoing","형용사","외향적인, 사교적인","She is outgoing and makes friends easily.","그녀는 외향적이라 친구를 쉽게 사귄다.","성격·감정"],
+["laid-back","형용사","느긋한, 태평한","He has a laid-back personality.","그는 느긋한 성격이다.","성격·감정"],
+["picky","형용사","까다로운","I am a bit picky about coffee.","나는 커피에 좀 까다롭다.","성격·감정"],
+["overwhelmed","형용사","벅찬, 감당하기 힘든","I felt overwhelmed by the workload.","나는 업무량에 벅찼다.","성격·감정"],
+["frustrated","형용사","답답한, 좌절한","I got frustrated when nothing worked.","아무것도 안 되니 답답했다.","성격·감정"],
+["exhausted","형용사","기진맥진한","I was completely exhausted afterward.","나는 그 후에 완전히 지쳐 있었다.","성격·감정"],
+["impressed","형용사","감명받은","I was impressed by how clean it was.","얼마나 깨끗한지 보고 감탄했다.","성격·감정"],
+["reasonable","형용사","합리적인, (값이) 적당한","The prices there are reasonable.","그곳 가격은 적당한 편이다.","성격·감정"],
+["shy","형용사","수줍은, 내성적인","I was very shy as a kid.","나는 어릴 때 아주 내성적이었다.","성격·감정"],
+["talkative","형용사","말이 많은","My friend is talkative and funny.","내 친구는 말이 많고 재미있다.","성격·감정"],
+["considerate","형용사","배려심 있는","He is considerate of other people.","그는 다른 사람을 배려한다.","성격·감정"],
+["stubborn","형용사","고집이 센","I can be stubborn sometimes.","나는 가끔 고집이 셀 수 있다.","성격·감정"],
+["patient","형용사","인내심 있는","You need to be patient with beginners.","초보자에게는 인내심이 필요하다.","성격·감정"],
+["generous","형용사","너그러운, 후한","My grandmother was very generous.","우리 할머니는 아주 너그러우셨다.","성격·감정"],
+["humble","형용사","겸손한","He stayed humble after the award.","그는 상을 받고도 겸손했다.","성격·감정"],
+["confident","형용사","자신감 있는","I feel more confident speaking now.","나는 이제 말하는 데 자신감이 생겼다.","성격·감정"],
+["easygoing","형용사","털털한, 무던한","My roommate is pretty easygoing.","내 룸메이트는 꽤 털털하다.","성격·감정"],
+["reliable","형용사","믿을 만한","She is the most reliable person I know.","그녀는 내가 아는 가장 믿을 만한 사람이다.","성격·감정"],
+["organized","형용사","정리를 잘하는, 체계적인","I try to stay organized at work.","나는 일할 때 체계적이려고 한다.","성격·감정"],
+["messy","형용사","어수선한, 정리를 못 하는","My desk is messy but I know where things are.","내 책상은 지저분하지만 어디에 뭐가 있는지는 안다.","성격·감정"],
+["curious","형용사","호기심이 많은","I am curious about how things work.","나는 사물이 작동하는 방식이 궁금하다.","성격·감정"],
+["creative","형용사","창의적인","She comes up with creative solutions.","그녀는 창의적인 해결책을 낸다.","성격·감정"],
+["honest","형용사","솔직한, 정직한","I would rather be honest about it.","나는 그것에 대해 솔직한 편이 낫다.","성격·감정"],
+["supportive","형용사","힘이 되어 주는","My family has been very supportive.","우리 가족은 큰 힘이 되어 줬다.","성격·감정"],
+["competitive","형용사","경쟁심이 강한","I get competitive when playing games.","나는 게임할 때 경쟁심이 생긴다.","성격·감정"],
+["thoughtful","형용사","사려 깊은","It was a thoughtful gift.","사려 깊은 선물이었다.","성격·감정"],
+["grateful","형용사","고마워하는","I am grateful for their help.","나는 그들의 도움에 감사한다.","성격·감정"],
+["annoyed","형용사","짜증이 난","I was annoyed by the noise.","나는 소음 때문에 짜증이 났다.","성격·감정"],
+["embarrassed","형용사","창피한, 민망한","I was embarrassed about my mistake.","나는 실수 때문에 민망했다.","성격·감정"],
+["nervous","형용사","긴장한","I get nervous before presentations.","나는 발표 전에 긴장한다.","성격·감정"],
+["excited","형용사","신이 난, 들뜬","I was excited about the trip.","나는 여행 때문에 들떠 있었다.","성격·감정"],
+["disappointed","형용사","실망한","I was a little disappointed with it.","나는 그것에 조금 실망했다.","성격·감정"],
+["relieved","형용사","안도한","I felt relieved when it was over.","끝나고 나니 안도감이 들었다.","성격·감정"],
+["satisfied","형용사","만족한","I am satisfied with the result.","나는 결과에 만족한다.","성격·감정"],
+["proud","형용사","자랑스러운","I was proud of what we built.","나는 우리가 만든 것이 자랑스러웠다.","성격·감정"],
+["homesick","형용사","향수병이 난","I got homesick after a month.","나는 한 달 만에 향수병이 났다.","성격·감정"],
+["touched","형용사","감동한","I was really touched by the message.","나는 그 메시지에 정말 감동했다.","성격·감정"],
+["upset","형용사","속상한, 화난","She was upset about the news.","그녀는 그 소식에 속상해했다.","성격·감정"],
+["calm down","표현","진정하다","I took a walk to calm down.","나는 진정하려고 산책했다.","성격·감정"],
+["cheer up","표현","기운을 내다, 기운을 북돋우다","My friends cheered me up.","친구들이 나를 기운 나게 해 줬다.","성격·감정"],
+["get over it","표현","털어내다, 극복하다","It took me a while to get over it.","털어내는 데 시간이 좀 걸렸다.","성격·감정"],
+["mixed feelings","표현","복잡한 심경","I had mixed feelings about leaving.","떠나는 것에 대해 심경이 복잡했다.","성격·감정"],
+["look up to","표현","존경하다","I look up to my older sister.","나는 누나를 존경한다.","성격·감정"],
+["get to know","표현","알아 가다","It takes time to get to know him.","그를 알아 가는 데 시간이 걸린다.","성격·감정"],
+["have a lot in common","표현","공통점이 많다","We have a lot in common.","우리는 공통점이 많다.","성격·감정"],
+
+// ── 롤플레이 ──
+["get a refund","표현","환불받다","I asked if I could get a refund.","나는 환불이 가능한지 물었다.","롤플레이"],
+["reschedule","동사","일정을 변경하다","Can we reschedule the appointment?","예약을 변경할 수 있을까요?","롤플레이"],
+["out of order","표현","고장 난","The elevator is out of order again.","엘리베이터가 또 고장 났다.","롤플레이"],
+["make a complaint","표현","항의하다","I had to make a complaint about the noise.","나는 소음에 대해 항의해야 했다.","롤플레이"],
+["apologize for","표현","~에 대해 사과하다","I apologized for being late.","나는 늦은 것을 사과했다.","롤플레이"],
+["run late","표현","늦어지다","I am running late, start without me.","제가 늦을 것 같으니 먼저 시작하세요.","롤플레이"],
+["sort out","표현","해결하다, 정리하다","We sorted out the issue in an hour.","우리는 한 시간 만에 문제를 해결했다.","롤플레이"],
+["fill out","표현","(서류를) 작성하다","You need to fill out this form.","이 양식을 작성하셔야 합니다.","롤플레이"],
+["give someone a call","표현","~에게 전화하다","I will give you a call tomorrow.","내일 전화드릴게요.","롤플레이"],
+["exchange","동사","교환하다","Can I exchange this for a larger size?","이걸 더 큰 사이즈로 교환할 수 있나요?","롤플레이"],
+["receipt","명사","영수증","Do you still have the receipt?","영수증 아직 가지고 계세요?","롤플레이"],
+["warranty","명사","보증, 품질보증서","It is still under warranty.","아직 보증 기간 안에 있습니다.","롤플레이"],
+["defective","형용사","결함이 있는","The item arrived defective.","물건이 결함이 있는 채로 왔다.","롤플레이"],
+["missing part","명사","빠진 부품","There was a missing part in the box.","상자에 빠진 부품이 있었다.","롤플레이"],
+["cancel an order","표현","주문을 취소하다","I would like to cancel my order.","주문을 취소하고 싶습니다.","롤플레이"],
+["place an order","표현","주문하다","I placed an order last Tuesday.","나는 지난 화요일에 주문했다.","롤플레이"],
+["confirm","동사","확인하다, 확정하다","Could you confirm the time?","시간을 확인해 주시겠어요?","롤플레이"],
+["appointment","명사","약속, 예약","I have an appointment at two.","나는 2시에 예약이 있다.","롤플레이"],
+["available","형용사","시간이 되는, 이용 가능한","Are you available on Thursday?","목요일에 시간 되세요?","롤플레이"],
+["put on hold","표현","대기시키다","They put me on hold for ten minutes.","그들이 나를 10분간 대기시켰다.","롤플레이"],
+["transfer the call","표현","전화를 돌려주다","Let me transfer the call for you.","전화를 연결해 드리겠습니다.","롤플레이"],
+["leave a message","표현","메시지를 남기다","I left a message on the machine.","나는 자동응답기에 메시지를 남겼다.","롤플레이"],
+["get back to me","표현","다시 연락 주다","Please get back to me by Friday.","금요일까지 연락 주세요.","롤플레이"],
+["in person","표현","직접, 대면으로","I would rather handle it in person.","나는 직접 처리하는 편이 낫겠다.","롤플레이"],
+["in advance","표현","미리, 사전에","Thank you in advance.","미리 감사드립니다.","롤플레이"],
+["let me know","표현","알려 주세요","Let me know if anything changes.","변경 사항이 있으면 알려 주세요.","롤플레이"],
+["would it be possible to","표현","~하는 게 가능할까요","Would it be possible to move it up?","일정을 앞당기는 게 가능할까요?","롤플레이"],
+["I was wondering if","표현","혹시 ~인지 궁금해서요","I was wondering if you had any left.","혹시 남은 게 있는지 궁금해서요.","롤플레이"],
+["on short notice","표현","촉박하게, 갑작스럽게","Sorry for asking on short notice.","촉박하게 부탁드려 죄송합니다.","롤플레이"],
+["make an exception","표현","예외를 두다","Could you make an exception this time?","이번만 예외로 해 주실 수 있나요?","롤플레이"],
+["work something out","표현","방법을 찾아보다","I am sure we can work something out.","분명 방법을 찾을 수 있을 거예요.","롤플레이"],
+["double-check","동사","다시 확인하다","Let me double-check the address.","주소를 다시 확인해 볼게요.","롤플레이"],
+["look into it","표현","알아보다, 조사하다","I will look into it right away.","바로 알아보겠습니다.","롤플레이"],
+["take a look","표현","한번 보다","Could you take a look at this?","이것 좀 봐 주시겠어요?","롤플레이"],
+["right away","표현","즉시, 바로","I will send it right away.","바로 보내 드리겠습니다.","롤플레이"],
+["as soon as possible","표현","가능한 한 빨리","Please reply as soon as possible.","가능한 한 빨리 답해 주세요.","롤플레이"],
+["keep me posted","표현","계속 알려 주세요","Keep me posted on the progress.","진행 상황을 계속 알려 주세요.","롤플레이"],
+["no problem at all","표현","전혀 문제없어요","No problem at all, take your time.","전혀 문제없어요, 천천히 하세요.","롤플레이"],
+["I appreciate it","표현","감사합니다","I really appreciate your help.","도와주셔서 정말 감사합니다.","롤플레이"],
+["that works for me","표현","저는 괜찮아요","Three o'clock works for me.","3시 괜찮습니다.","롤플레이"],
+
+// ── 기기 ──
+["charger","명사","충전기","I left my charger at the office.","나는 충전기를 사무실에 두고 왔다.","기기"],
+["battery life","명사","배터리 수명","The battery life is getting worse.","배터리 수명이 점점 나빠진다.","기기"],
+["touchscreen","명사","터치스크린","The touchscreen stopped responding.","터치스크린이 반응을 안 했다.","기기"],
+["update","명사","업데이트","The update fixed the problem.","업데이트가 문제를 해결했다.","기기"],
+["install","동사","설치하다","I installed the app last night.","나는 어젯밤 앱을 설치했다.","기기"],
+["uninstall","동사","삭제하다","I uninstalled a few unused apps.","나는 안 쓰는 앱 몇 개를 지웠다.","기기"],
+["log in","표현","로그인하다","I could not log in this morning.","나는 오늘 아침 로그인을 못 했다.","기기"],
+["sign up","표현","가입하다","I signed up with my email.","나는 이메일로 가입했다.","기기"],
+["password","명사","비밀번호","I forgot my password again.","나는 또 비밀번호를 잊었다.","기기"],
+["data plan","명사","데이터 요금제","I switched to a cheaper data plan.","나는 더 싼 요금제로 바꿨다.","기기"],
+["back up","표현","백업하다","I back up my photos every month.","나는 매달 사진을 백업한다.","기기"],
+["storage","명사","저장 공간","I am running low on storage.","나는 저장 공간이 부족하다.","기기"],
+["notification","명사","알림","I turned off most notifications.","나는 알림을 대부분 껐다.","기기"],
+["settings","명사","설정","You can change it in the settings.","설정에서 바꿀 수 있어요.","기기"],
+["crash","동사","(앱이) 튕기다, 멈추다","The app keeps crashing.","앱이 계속 튕긴다.","기기"],
+["freeze","동사","화면이 멈추다","My laptop froze for a minute.","내 노트북이 잠시 멈췄다.","기기"],
+["restart","동사","재시작하다","Try restarting the device.","기기를 재시작해 보세요.","기기"],
+["plug in","표현","(전원에) 꽂다","I plugged in my phone to charge.","나는 충전하려고 휴대폰을 꽂았다.","기기"],
+["wireless","형용사","무선의","I use wireless earbuds.","나는 무선 이어폰을 쓴다.","기기"],
+["screen time","명사","화면 사용 시간","My screen time went up this week.","이번 주에 화면 사용 시간이 늘었다.","기기"],
+["come in handy","표현","요긴하게 쓰이다","This feature comes in handy.","이 기능은 요긴하게 쓰인다.","기기"],
+["user-friendly","형용사","쓰기 쉬운","The app is very user-friendly.","그 앱은 아주 쓰기 쉽다.","기기"],
+["run out of battery","표현","배터리가 다 되다","My phone ran out of battery.","내 휴대폰 배터리가 다 됐다.","기기"],
+["look it up","표현","찾아보다","I just looked it up online.","나는 방금 온라인에서 찾아봤다.","기기"],
+["keep in touch","표현","연락을 유지하다","We keep in touch through messages.","우리는 메시지로 연락을 유지한다.","기기"],
+// ── 심화 ──
+["abandon","동사","버리다, 포기하다","They abandoned the project halfway.","그들은 프로젝트를 중간에 포기했다.","심화"],
+["abundant","형용사","풍부한, 많은","The region has abundant resources.","그 지역은 자원이 풍부하다.","심화"],
+["accommodate","동사","수용하다, 맞춰주다","The hall can accommodate 500 people.","그 홀은 500명을 수용할 수 있다.","심화"],
+["acquire","동사","습득하다, 얻다","She acquired fluency in Japanese.","그녀는 일본어 유창함을 습득했다.","심화"],
+["adequate","형용사","적절한, 충분한","The lighting was not adequate.","조명이 충분하지 않았다.","심화"],
+["adjacent","형용사","인접한, 바로 옆의","Our office is adjacent to the station.","우리 사무실은 역 바로 옆이다.","심화"],
+["allocate","동사","할당하다, 배분하다","We allocated more memory to the process.","우리는 그 프로세스에 메모리를 더 할당했다.","심화"],
+["ambiguous","형용사","애매한, 모호한","His answer was deliberately ambiguous.","그의 대답은 의도적으로 모호했다.","심화"],
+["anticipate","동사","예상하다","We anticipate a delay of two weeks.","우리는 2주 지연을 예상한다.","심화"],
+["apparent","형용사","명백한","It became apparent that he was lying.","그가 거짓말한다는 게 명백해졌다.","심화"],
+["arbitrary","형용사","임의의, 제멋대로인","The deadline felt arbitrary.","그 마감일은 임의로 느껴졌다.","심화"],
+["assess","동사","평가하다, 가늠하다","Let me assess the damage first.","먼저 피해를 평가해 보겠습니다.","심화"],
+["attribute","동사","~의 탓으로 돌리다","She attributes her success to luck.","그녀는 성공을 운 덕분으로 여긴다.","심화"],
+["bias","명사","편견, 치우침","The survey showed a clear bias.","그 설문은 뚜렷한 편향을 보였다.","심화"],
+["coherent","형용사","일관성 있는, 조리 있는","He gave a coherent explanation.","그는 조리 있는 설명을 했다.","심화"],
+["compensate","동사","보상하다, 상쇄하다","Nothing can compensate for lost time.","잃은 시간은 무엇으로도 보상되지 않는다.","심화"],
+["comprehensive","형용사","포괄적인, 종합적인","We need a comprehensive review.","종합적인 검토가 필요하다.","심화"],
+["consecutive","형용사","연속적인","It rained for five consecutive days.","5일 연속으로 비가 왔다.","심화"],
+["constrain","동사","제약하다","Budget constrains what we can build.","예산이 만들 수 있는 것을 제약한다.","심화"],
+["contradict","동사","모순되다, 반박하다","These two reports contradict each other.","이 두 보고서는 서로 모순된다.","심화"],
+["crucial","형용사","결정적인, 중대한","Timing is crucial in this test.","이 시험에서 타이밍이 결정적이다.","심화"],
+["deliberate","형용사","의도적인, 신중한","That was a deliberate choice.","그것은 의도적인 선택이었다.","심화"],
+["deploy","동사","배치하다, 배포하다","We deploy the update every Friday.","우리는 금요일마다 업데이트를 배포한다.","심화"],
+["deteriorate","동사","악화되다","The weather deteriorated quickly.","날씨가 빠르게 악화됐다.","심화"],
+["diminish","동사","줄어들다, 감소시키다","The pain gradually diminished.","통증이 점차 줄어들었다.","심화"],
+["discrepancy","명사","불일치, 차이","There is a discrepancy in the numbers.","수치에 불일치가 있다.","심화"],
+["distort","동사","왜곡하다","The headline distorts the facts.","그 헤드라인은 사실을 왜곡한다.","심화"],
+["elaborate","동사","자세히 설명하다","Could you elaborate on that point?","그 부분을 자세히 설명해 주시겠어요?","심화"],
+["eliminate","동사","제거하다, 없애다","We eliminated three possible causes.","우리는 세 가지 원인을 제거했다.","심화"],
+["emerge","동사","나타나다, 드러나다","A new pattern emerged from the data.","데이터에서 새 패턴이 드러났다.","심화"],
+["empirical","형용사","경험적인, 실증적인","There is little empirical evidence.","실증적 근거가 거의 없다.","심화"],
+["enhance","동사","향상시키다","Sleep enhances memory retention.","수면은 기억 유지를 향상시킨다.","심화"],
+["explicit","형용사","명시적인, 분명한","Give explicit instructions, not hints.","암시가 아니라 명시적 지시를 주세요.","심화"],
+["feasible","형용사","실현 가능한","Is that schedule feasible?","그 일정이 실현 가능한가요?","심화"],
+["fluctuate","동사","변동하다","Prices fluctuate throughout the day.","가격은 하루 종일 변동한다.","심화"],
+["hinder","동사","방해하다, 저해하다","Fear of failure hinders progress.","실패에 대한 두려움이 발전을 방해한다.","심화"],
+["implement","동사","시행하다, 구현하다","We implemented the new protocol.","우리는 새 프로토콜을 구현했다.","심화"],
+["inevitable","형용사","불가피한","Some conflict was inevitable.","어느 정도 갈등은 불가피했다.","심화"],
+["integrate","동사","통합하다","The two systems were integrated.","두 시스템이 통합됐다.","심화"],
+["intuitive","형용사","직관적인","The interface should feel intuitive.","인터페이스는 직관적이어야 한다.","심화"],
+["justify","동사","정당화하다","How do you justify the extra cost?","추가 비용을 어떻게 정당화하시겠어요?","심화"],
+["mitigate","동사","완화하다, 줄이다","We took steps to mitigate the risk.","우리는 위험을 완화할 조치를 취했다.","심화"],
+["negligible","형용사","무시해도 될 정도의","The difference was negligible.","그 차이는 무시할 만했다.","심화"],
+["obsolete","형용사","구식의","That format is now obsolete.","그 포맷은 이제 구식이다.","심화"],
+["persistent","형용사","끈질긴, 지속적인","She was persistent and finally won.","그녀는 끈질겼고 결국 이겼다.","심화"],
+["plausible","형용사","그럴듯한, 타당한","That sounds like a plausible theory.","그럴듯한 이론처럼 들린다.","심화"],
+["precise","형용사","정확한, 정밀한","We need a precise measurement.","정밀한 측정이 필요하다.","심화"],
+["redundant","형용사","불필요한, 중복된","Remove the redundant checks.","중복된 검사를 제거하세요.","심화"],
+["reluctant","형용사","꺼리는, 주저하는","He was reluctant to admit it.","그는 인정하기를 꺼렸다.","심화"],
+["resilient","형용사","회복력 있는","Children are remarkably resilient.","아이들은 놀랍도록 회복력이 좋다.","심화"],
+["retrieve","동사","되찾다, 가져오다","The system retrieves data on demand.","시스템은 요청 시 데이터를 가져온다.","심화"],
+["robust","형용사","견고한, 튼튼한","We need a more robust design.","더 견고한 설계가 필요하다.","심화"],
+["simultaneous","형용사","동시의","The two events were simultaneous.","두 사건은 동시에 일어났다.","심화"],
+["subtle","형용사","미묘한","There is a subtle difference here.","여기에 미묘한 차이가 있다.","심화"],
+["sustain","동사","지속하다, 지탱하다","Can you sustain this pace?","이 속도를 지속할 수 있나요?","심화"],
+["tedious","형용사","지루한, 따분한","Copying it by hand was tedious.","손으로 옮겨 적는 일은 지루했다.","심화"],
+["threshold","명사","문턱, 임계값","The alarm has a high threshold.","그 경보는 임계값이 높다.","심화"],
+["validate","동사","검증하다, 입증하다","Always validate user input.","항상 사용자 입력을 검증하세요.","심화"],
+["versatile","형용사","다재다능한, 다용도의","It is a versatile little tool.","다용도로 쓰이는 작은 도구다.","심화"],
+["vulnerable","형용사","취약한","Old systems are vulnerable to attack.","오래된 시스템은 공격에 취약하다.","심화"],
+];
+
+/* ─────────── 상태 ─────────── */
+var KEY = 'opic_deck_v1';
+var INTERVALS = [0, 1, 2, 4, 8, 16];
+var DAY = 86400000;
+var TOPICS = ['일상','집·동네','취미','미디어','운동','음식','여행','직장','성격·감정','롤플레이','기기','심화'];
+var MODES = [['flash','플래시카드'],['choice','4지선다'],['spell','스펠링'],['mix','섞어서']];
+
+var S = {
+  deck: [], view: 'study', mode: 'mix', topic: '전체',
+  queue: [], idx: 0, revealed: false, picked: null, result: null,
+  typed: '', session: {right:0, wrong:0, done:0},
+  query: '', shown: 40, msg: '', msgWarn: false
+};
+
+function esc(s){
+  return String(s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+function isPhrase(w){ return /[\s-]/.test(w); }
+function shuffle(a){
+  var b = a.slice();
+  for (var i = b.length - 1; i > 0; i--){
+    var j = Math.floor(Math.random() * (i + 1));
+    var t = b[i]; b[i] = b[j]; b[j] = t;
+  }
+  return b;
+}
+function makeCard(r, id){
+  return { id:id, word:r[0], pos:r[1], meaning:r[2], example:r[3], exampleKo:r[4],
+           topic:r[5], box:0, due:0, right:0, wrong:0 };
+}
+
+/* ─────────── 저장 ─────────── */
+function load(){
+  var saved = null;
+  try { saved = JSON.parse(localStorage.getItem(KEY) || 'null'); } catch(e){}
+  if (saved && saved.length){
+    var have = {};
+    saved.forEach(function(c){ have[c.word.toLowerCase()] = 1; });
+    var fresh = [];
+    WORDS.forEach(function(r, i){
+      if (!have[r[0].toLowerCase()]) fresh.push(makeCard(r, 's' + i));
+    });
+    S.deck = saved.concat(fresh);
+  } else {
+    S.deck = WORDS.map(function(r, i){ return makeCard(r, 's' + i); });
+  }
+}
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(S.deck)); }
+  catch(e){ S.msg = '진도를 저장하지 못했습니다.'; S.msgWarn = true; }
+}
+
+/* ─────────── 조회 ─────────── */
+function scoped(){
+  if (S.topic === '전체') return S.deck;
+  return S.deck.filter(function(c){ return c.topic === S.topic; });
+}
+function dueList(){
+  var now = Date.now();
+  return scoped().filter(function(c){ return c.due <= now; });
+}
+function cardById(id){
+  for (var i = 0; i < S.deck.length; i++) if (S.deck[i].id === id) return S.deck[i];
+  return null;
+}
+function current(){ return S.queue.length ? cardById(S.queue[S.idx]) : null; }
+
+function cardMode(c){
+  var phrase = isPhrase(c.word);
+  if (S.mode !== 'mix') return (S.mode === 'spell' && phrase) ? 'choice' : S.mode;
+  var pool = phrase ? ['flash','choice'] : ['flash','choice','spell'];
+  var h = 0, k = c.id + '#' + S.idx;
+  for (var i = 0; i < k.length; i++) h = (h * 31 + k.charCodeAt(i)) | 0;
+  return pool[Math.abs(h) % pool.length];
+}
+
+var choiceCache = null;
+function choicesFor(c){
+  if (choiceCache && choiceCache.id === c.id + '#' + S.idx) return choiceCache.list;
+  var others = shuffle(S.deck.filter(function(x){ return x.id !== c.id; })).slice(0, 3);
+  var list = shuffle([c].concat(others)).map(function(x){ return {id:x.id, text:x.meaning}; });
+  choiceCache = { id: c.id + '#' + S.idx, list: list };
+  return list;
+}
+
+/* ─────────── 동작 ─────────── */
+function speak(text){
+  try {
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US'; u.rate = 0.92;
+    window.speechSynthesis.speak(u);
+  } catch(e){}
+}
+function resetCard(){
+  S.revealed = false; S.picked = null; S.result = null; S.typed = ''; choiceCache = null;
+}
+function startSession(){
+  var pool = dueList();
+  if (!pool.length) pool = scoped();
+  if (!pool.length) return;
+  S.queue = shuffle(pool).slice(0, 20).map(function(c){ return c.id; });
+  S.idx = 0; S.session = {right:0, wrong:0, done:0};
+  resetCard(); render();
+}
+function grade(ok){
+  if (S.result) return;
+  var c = current();
+  S.result = ok ? 'right' : 'wrong';
+  S.revealed = true;
+  S.session.done++;
+  if (ok) S.session.right++; else S.session.wrong++;
+  c.box = ok ? Math.min(5, c.box + 1) : 0;
+  c.due = Date.now() + INTERVALS[c.box] * DAY;
+  if (ok) c.right++; else c.wrong++;
+  save(); render();
+}
+function nextCard(){
+  if (S.idx + 1 >= S.queue.length){ S.queue = []; S.idx = 0; }
+  else { S.idx++; }
+  resetCard(); render();
+}
+function addWord(word, meaning, example, exampleKo, topic){
+  word = word.trim();
+  if (!word) return '단어를 입력하세요.';
+  var dup = S.deck.some(function(c){ return c.word.toLowerCase() === word.toLowerCase(); });
+  if (dup) return '"' + word + '"은(는) 이미 있습니다.';
+  S.deck.push({
+    id: 'u' + Date.now() + Math.floor(Math.random()*1000),
+    word: word, pos: '추가', meaning: meaning.trim() || '(뜻 없음)',
+    example: example.trim(), exampleKo: exampleKo.trim(), topic: topic,
+    box: 0, due: 0, right: 0, wrong: 0, custom: true
+  });
+  save();
+  return null;
+}
+
+/* ─────────── 화면 ─────────── */
+function render(){
+  var h = '';
+  h += '<header class="bar"><div class="brand"><span class="chip"></span>오픽 단어장</div><nav>';
+  [['study','학습'],['list','목록'],['add','추가']].forEach(function(v){
+    h += '<button data-view="' + v[0] + '"' + (S.view === v[0] ? ' class="on"' : '') + '>' + v[1] + '</button>';
+  });
+  h += '</nav></header>';
+
+  if (S.view === 'study') h += current() ? viewCard() : viewHome();
+  else if (S.view === 'list') h += viewList();
+  else h += viewAdd();
+
+  document.getElementById('app').innerHTML = h;
+  bind();
+}
+
+function viewHome(){
+  var due = dueList().length, sc = scoped();
+  var mastered = sc.filter(function(c){ return c.box >= 5; }).length;
+  var h = '<section class="pane">';
+  h += '<div class="today"><p class="count">' + due + '<span>개</span></p><p class="today-sub">' +
+       (due ? (S.topic === '전체' ? '오늘' : esc(S.topic) + ' 주제에서') + ' 복습할 차례가 된 표현이에요.'
+            : '복습할 차례인 표현이 없어요. 미리 훑어볼 수 있습니다.') + '</p></div>';
+
+  h += '<div class="chips"><button class="chipbtn' + (S.topic === '전체' ? ' on' : '') +
+       '" data-topic="전체">전체<b>' + S.deck.length + '</b></button>';
+  TOPICS.forEach(function(t){
+    var n = S.deck.filter(function(c){ return c.topic === t; }).length;
+    if (!n) return;
+    h += '<button class="chipbtn' + (S.topic === t ? ' on' : '') + '" data-topic="' + esc(t) + '">' +
+         esc(t) + '<b>' + n + '</b></button>';
+  });
+  h += '</div>';
+
+  h += '<div class="stats"><div><b>' + sc.length + '</b><span>표현</span></div>' +
+       '<div><b>' + mastered + '</b><span>외웠음</span></div>' +
+       '<div><b>' + (sc.length - mastered) + '</b><span>외우는 중</span></div></div>';
+
+  h += '<div class="chips">';
+  MODES.forEach(function(m){
+    h += '<button class="chipbtn' + (S.mode === m[0] ? ' on' : '') + '" data-mode="' + m[0] + '">' + m[1] + '</button>';
+  });
+  h += '</div>';
+
+  if (S.session.done) h += '<p class="last">방금 ' + S.session.done + '개 학습 · 맞음 ' +
+       S.session.right + ' · 틀림 ' + S.session.wrong + '</p>';
+  if (S.msg) h += '<p class="msg' + (S.msgWarn ? ' warn' : '') + '">' + esc(S.msg) + '</p>';
+
+  h += '<button class="go" data-act="start"' + (sc.length ? '' : ' disabled') + '>학습 시작</button>';
+  h += '<button class="ghost" data-act="reset">학습 기록 초기화</button>';
+  return h + '</section>';
+}
+
+function viewCard(){
+  var c = current(), m = cardMode(c);
+  var h = '<section class="pane">';
+  h += '<div class="progress"><div class="track"><div class="fill" style="width:' +
+       (S.idx / S.queue.length * 100) + '%"></div></div><span>' + (S.idx + 1) + ' / ' + S.queue.length + '</span></div>';
+
+  h += '<article class="card ' + (S.result || '') + '">';
+  h += '<p class="pos">' + esc(c.topic) + ' · ' + esc(c.pos) + ' · ' +
+       (c.box >= 5 ? '외웠음' : (c.box + 1) + '단계') + '</p>';
+
+  if (m === 'spell'){
+    h += '<p class="kmean">' + esc(c.meaning) + '</p>';
+    h += '<p class="hint">' + esc(c.word[0]) + new Array(c.word.length).join('·') + '</p>';
+    h += '<input class="spell" id="spellin" autocapitalize="none" autocorrect="off" spellcheck="false" ' +
+         'placeholder="철자를 입력하세요" value="' + esc(S.typed) + '"' + (S.result ? ' disabled' : '') + '>';
+    if (S.result === 'wrong') h += '<p class="answer">정답: ' + esc(c.word) + '</p>';
+    if (!S.result) h += '<button class="go sm" data-act="check">확인</button>';
+  } else {
+    h += '<div class="wordrow"><p class="word">' + esc(c.word) +
+         '</p><button class="spk" data-say="' + esc(c.word) + '" aria-label="발음 듣기">🔊</button></div>';
+  }
+
+  if (m === 'flash'){
+    h += '<div class="sheet-wrap" data-act="reveal"><p class="kmean red">' + esc(c.meaning) + '</p>' +
+         '<div class="sheet' + (S.revealed ? ' off' : '') + '"><span>탭해서 뜻 보기</span></div></div>';
+  }
+
+  if (m === 'choice'){
+    h += '<div class="choices">';
+    choicesFor(c).forEach(function(o){
+      var cls = 'choice';
+      if (S.picked){
+        if (o.id === c.id) cls += ' right';
+        else if (o.id === S.picked) cls += ' wrong';
+      }
+      h += '<button class="' + cls + '" data-pick="' + o.id + '"' + (S.picked ? ' disabled' : '') + '>' +
+           esc(o.text) + '</button>';
+    });
+    h += '</div>';
+  }
+
+  if (S.revealed && c.example){
+    h += '<div class="ex"><p class="ex-en" data-say="' + esc(c.example) + '">' + esc(c.example) +
+         '</p><p class="ex-ko">' + esc(c.exampleKo) + '</p></div>';
+  }
+  h += '</article>';
+
+  if (m === 'flash' && S.revealed && !S.result){
+    h += '<div class="judge"><button class="miss" data-grade="0">다시 볼래요</button>' +
+         '<button class="hit" data-grade="1">알고 있었어요</button></div>';
+  }
+  if (S.result) h += '<button class="go" data-act="next">' +
+       (S.idx + 1 >= S.queue.length ? '학습 마치기' : '다음') + '</button>';
+  if (!S.result && m !== 'flash') h += '<button class="ghost" data-act="quit">그만하기</button>';
+  return h + '</section>';
+}
+
+function viewList(){
+  var q = S.query.trim().toLowerCase();
+  var rows = S.deck.filter(function(c){
+    return !q || c.word.toLowerCase().indexOf(q) >= 0 || c.meaning.indexOf(q) >= 0;
+  });
+  var h = '<section class="pane">';
+  h += '<input class="search" id="searchin" placeholder="단어나 뜻으로 찾기" value="' + esc(S.query) + '">';
+  h += '<p class="lead">' + rows.length + '개 표시 중 (전체 ' + S.deck.length + '개)</p><ul class="list">';
+  rows.slice(0, S.shown).forEach(function(c){
+    h += '<li><details><summary><span class="lw">' + esc(c.word) + '</span><span class="rt">' +
+         '<span class="tg">' + esc(c.topic) + '</span><span class="dot b' + c.box + '"></span></span></summary>' +
+         '<p class="lm">' + esc(c.pos) + ' · ' + esc(c.meaning) + '</p>' +
+         (c.example ? '<p class="ex-en small">' + esc(c.example) + '</p>' +
+                      '<p class="ex-ko small">' + esc(c.exampleKo) + '</p>' : '') +
+         '<div class="lact"><button class="ghost" data-say="' + esc(c.word) + '">발음 듣기</button>' +
+         '<button class="ghost" data-del="' + c.id + '">지우기</button></div></details></li>';
+  });
+  h += '</ul>';
+  if (rows.length > S.shown) h += '<button class="ghost more" data-act="more">더 보기</button>';
+  return h + '</section>';
+}
+
+function viewAdd(){
+  var h = '<section class="pane">';
+  h += '<p class="lead">내 단어를 직접 넣습니다. 뜻만 적어도 되고, 예문은 비워 둬도 됩니다.</p>';
+  h += '<div class="field"><label>단어 또는 표현</label><input id="a-word" autocapitalize="none" placeholder="look forward to"></div>';
+  h += '<div class="field"><label>뜻</label><input id="a-mean" placeholder="~를 기대하다"></div>';
+  h += '<div class="field"><label>예문 (선택)</label><input id="a-ex" autocapitalize="none" placeholder="I look forward to Fridays."></div>';
+  h += '<div class="field"><label>예문 번역 (선택)</label><input id="a-exko" placeholder="나는 금요일을 기대한다."></div>';
+  h += '<div class="chips" id="a-topics">';
+  TOPICS.forEach(function(t){
+    h += '<button class="chipbtn' + (S.addTopic === t ? ' on' : '') + '" data-atopic="' + esc(t) + '">' + esc(t) + '</button>';
+  });
+  h += '</div><button class="go" data-act="add">단어장에 넣기</button>';
+  h += '<div class="divider"></div>';
+  h += '<p class="lead">여러 개를 한 번에 넣으려면 한 줄에 하나씩, <b>단어, 뜻</b> 형식으로 붙여 넣으세요.</p>';
+  h += '<div class="field"><textarea id="a-bulk" autocapitalize="none" placeholder="look forward to, ~를 기대하다&#10;show up, 나타나다"></textarea></div>';
+  h += '<button class="go" data-act="bulk">한꺼번에 넣기</button>';
+  if (S.msg) h += '<p class="msg' + (S.msgWarn ? ' warn' : '') + '">' + esc(S.msg) + '</p>';
+  return h + '</section>';
+}
+
+/* ─────────── 이벤트 ─────────── */
+function bind(){
+  var app = document.getElementById('app');
+
+  app.querySelectorAll('[data-view]').forEach(function(b){
+    b.onclick = function(){ S.view = b.dataset.view; S.msg = ''; render(); };
+  });
+  app.querySelectorAll('[data-topic]').forEach(function(b){
+    b.onclick = function(){ S.topic = b.dataset.topic; render(); };
+  });
+  app.querySelectorAll('[data-mode]').forEach(function(b){
+    b.onclick = function(){ S.mode = b.dataset.mode; render(); };
+  });
+  app.querySelectorAll('[data-say]').forEach(function(b){
+    b.onclick = function(e){ e.stopPropagation(); speak(b.dataset.say); };
+  });
+  app.querySelectorAll('[data-grade]').forEach(function(b){
+    b.onclick = function(){ grade(b.dataset.grade === '1'); };
+  });
+  app.querySelectorAll('[data-pick]').forEach(function(b){
+    b.onclick = function(){ S.picked = b.dataset.pick; grade(b.dataset.pick === current().id); };
+  });
+  app.querySelectorAll('[data-del]').forEach(function(b){
+    b.onclick = function(){
+      if (!confirm('이 단어를 지울까요?')) return;
+      S.deck = S.deck.filter(function(c){ return c.id !== b.dataset.del; });
+      save(); render();
+    };
+  });
+  app.querySelectorAll('[data-atopic]').forEach(function(b){
+    b.onclick = function(){ S.addTopic = b.dataset.atopic; render(); };
+  });
+
+  var sheet = app.querySelector('[data-act="reveal"]');
+  if (sheet) sheet.onclick = function(){ S.revealed = true; render(); };
+
+  var spellin = app.querySelector('#spellin');
+  if (spellin){
+    spellin.oninput = function(){ S.typed = spellin.value; };
+    spellin.onkeydown = function(e){ if (e.key === 'Enter') doCheck(); };
+    if (!S.result) setTimeout(function(){ spellin.focus(); }, 30);
+  }
+
+  var searchin = app.querySelector('#searchin');
+  if (searchin){
+    searchin.oninput = function(){
+      S.query = searchin.value; S.shown = 40;
+      var pos = searchin.selectionStart;
+      render();
+      var el = document.getElementById('searchin');
+      el.focus(); el.setSelectionRange(pos, pos);
+    };
+  }
+
+  app.querySelectorAll('[data-act]').forEach(function(b){
+    var a = b.dataset.act;
+    if (a === 'reveal') return;
+    b.onclick = function(){
+      if (a === 'start') startSession();
+      else if (a === 'next') nextCard();
+      else if (a === 'quit'){ S.queue = []; resetCard(); render(); }
+      else if (a === 'check') doCheck();
+      else if (a === 'more'){ S.shown += 40; render(); }
+      else if (a === 'reset'){
+        if (!confirm('모든 학습 기록과 직접 넣은 단어를 지우고 처음부터 시작할까요?')) return;
+        S.deck = WORDS.map(function(r, i){ return makeCard(r, 's' + i); });
+        S.queue = []; S.session = {right:0, wrong:0, done:0};
+        save(); render();
+      }
+      else if (a === 'add'){
+        var err = addWord(
+          document.getElementById('a-word').value,
+          document.getElementById('a-mean').value,
+          document.getElementById('a-ex').value,
+          document.getElementById('a-exko').value,
+          S.addTopic
+        );
+        S.msgWarn = !!err;
+        S.msg = err || '추가했습니다.';
+        render();
+      }
+      else if (a === 'bulk'){
+        var lines = document.getElementById('a-bulk').value.split('\n');
+        var n = 0, skipped = 0;
+        lines.forEach(function(ln){
+          if (!ln.trim()) return;
+          var i = ln.indexOf(',');
+          if (i < 0) i = ln.indexOf('\t');
+          var w = i < 0 ? ln : ln.slice(0, i);
+          var mn = i < 0 ? '' : ln.slice(i + 1);
+          if (addWord(w, mn, '', '', S.addTopic)) skipped++; else n++;
+        });
+        S.msgWarn = false;
+        S.msg = n + '개 추가' + (skipped ? ', ' + skipped + '개 건너뜀 (중복)' : '');
+        render();
+      }
+    };
+  });
+}
+
+function doCheck(){
+  if (!S.typed.trim() || S.result) return;
+  grade(S.typed.trim().toLowerCase() === current().word.toLowerCase());
+}
+
+/* ─────────── 시작 ─────────── */
+S.addTopic = '일상';
+load();
+render();
+</script>
+</body>
+</html>
